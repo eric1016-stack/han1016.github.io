@@ -1,0 +1,60 @@
+import sys
+from PIL import Image
+
+def create_jumping_frog_gif(sprite_sheet_path, output_gif_path="jumping_frog.gif"):
+    """
+    將一張含有連續動作的 Sprite Sheet 裁切並轉換成 GIF 動畫。
+    
+    假設這張圖 (例如 600x100) 裡面有 6 隻青蛙水平排列，
+    每隻青蛙的寬度是 100px。
+    """
+    try:
+        # 1. 載入原始圖片
+        sprite_sheet = Image.open(sprite_sheet_path)
+        
+        # 2. 計算每個 frame (畫格) 的大小
+        # 這裡假設你的圖是由 6 個等寬的動作組成的單行 sprite sheet
+        num_frames = 6
+        width, height = sprite_sheet.size
+        frame_width = width // num_frames
+        frame_height = height
+        
+        frames = []
+        
+        # 3. 裁切出每一個連續動作
+        for i in range(num_frames):
+            # 定義裁切的邊界 (left, top, right, bottom)
+            left = i * frame_width
+            top = 0
+            right = (i + 1) * frame_width
+            bottom = frame_height
+            
+            # 將裁切下來的畫格存入陣列中
+            frame = sprite_sheet.crop((left, top, right, bottom))
+            frames.append(frame)
+            
+        # 4. 將陣列中的圖片串接並匯出成 GIF 動畫
+        print(f"成功裁切 {len(frames)} 個畫格，正在產生 GIF...")
+        frames[0].save(
+            output_gif_path,
+            format='GIF',
+            append_images=frames[1:], # 附加上後續的畫格
+            save_all=True,            # 必須為 True 才能存成動畫
+            duration=150,             # 每個畫格停留的時間 (毫秒)
+            loop=0                    # 0 代表無限循環
+        )
+        
+        print(f"成功！GIF 動畫已儲存為：{output_gif_path}")
+        
+    except FileNotFoundError:
+        print(f"錯誤：找不到圖片檔案 '{sprite_sheet_path}'。請確認路徑與檔名是否正確。")
+    except Exception as e:
+        print(f"發生未預期的錯誤：{e}")
+
+if __name__ == "__main__":
+    # 執行前，請確保你有安裝 Pillow (pip install Pillow)
+    # 並準備一張名為 'frog_sprites.png' 的連續動作圖 (sprite sheet) 放在同一個資料夾下
+    # 你可以依據實際的檔名修改下方參數
+    
+    input_image = "frog_sprites.png" 
+    create_jumping_frog_gif(input_image)
