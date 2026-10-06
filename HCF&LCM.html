@@ -1,0 +1,468 @@
+<!-- ... existing code ... -->
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>最大公因數與最小公倍數 - 應用題挑戰</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+
+        body {
+            font-family: 'Nunito', 'Noto Sans TC', sans-serif;
+            background-color: #f0fdfa; /* 淺藍綠底色 */
+            color: #1e293b;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* 防止整個頁面滾動，固定計算紙區塊 */
+        }
+
+        /* 頂部導覽 */
+        header {
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+
+        /* 主佈局：左右分屏 */
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* 左側：題目區 */
+        .question-panel {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+            background-color: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            border-right: 2px solid #e2e8f0;
+        }
+
+        .question-card {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border-top: 6px solid #3b82f6;
+            margin-bottom: 20px;
+        }
+
+        .question-text {
+            font-size: 1.25rem;
+            line-height: 1.8;
+            margin-bottom: 20px;
+            color: #334155;
+            letter-spacing: 0.5px;
+        }
+
+        /* 輸入框樣式 */
+        .answer-input {
+            width: 80px;
+            text-align: center;
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #0284c7;
+            border: none;
+            border-bottom: 2px solid #94a3b8;
+            background: transparent;
+            padding: 2px 5px;
+            margin: 0 5px;
+            transition: all 0.2s;
+        }
+
+        .answer-input:focus {
+            outline: none;
+            border-bottom-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+
+        .answer-input.correct {
+            border-bottom-color: #10b981;
+            color: #10b981;
+            background-color: #ecfdf5;
+        }
+
+        .answer-input.wrong {
+            border-bottom-color: #ef4444;
+            color: #ef4444;
+            background-color: #fef2f2;
+            animation: shake 0.4s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        /* 按鈕樣式 */
+        .btn {
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background-color: #3b82f6;
+            color: white;
+            box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);
+        }
+        .btn-primary:hover { background-color: #2563eb; transform: translateY(-2px); }
+        .btn-primary:active { transform: translateY(0); }
+
+        .btn-secondary {
+            background-color: #e2e8f0;
+            color: #475569;
+        }
+        .btn-secondary:hover { background-color: #cbd5e1; }
+
+        /* 回饋區 */
+        .feedback-area {
+            min-height: 50px;
+            margin-top: 15px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+        }
+
+        /* 右側：計算紙區 */
+        .canvas-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: #ffffff;
+            position: relative;
+        }
+
+        .canvas-header {
+            padding: 10px 20px;
+            background-color: #f1f5f9;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            cursor: crosshair;
+            background-image: 
+                linear-gradient(#f1f5f9 1px, transparent 1px),
+                linear-gradient(90deg, #f1f5f9 1px, transparent 1px);
+            background-size: 20px 20px; /* 淡淡的格線背景 */
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            touch-action: none; /* 防止觸控螢幕上的預設滾動，允許畫圖 */
+        }
+
+        /* 響應式：手機直向時改為上下疊放 */
+        @media (max-width: 768px) {
+            .main-container { flex-direction: column; overflow: auto; }
+            .question-panel { border-right: none; border-bottom: 2px solid #e2e8f0; flex: none; }
+            .canvas-panel { flex: none; height: 500px; } /* 給定一個固定高度 */
+            body { overflow: auto; }
+        }
+
+    </style>
+</head>
+<body>
+
+<header>
+    <h1 class="text-2xl font-black text-slate-800">💡 應用題特訓</h1>
+    <span class="text-sm font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full">最大公因數與最小公倍數</span>
+</header>
+
+<div class="main-container">
+    <!-- 左側：題目與作答區 -->
+    <div class="question-panel">
+        <div class="question-card">
+            <div id="questionText" class="question-text">
+                <!-- 題目會動態生成在這裡 -->
+            </div>
+            
+            <div class="flex gap-4 mt-6">
+                <button id="checkBtn" class="btn btn-primary" onclick="checkAnswers()">送出答案</button>
+                <button id="nextBtn" class="btn btn-secondary" onclick="loadNextQuestion()">換一題</button>
+            </div>
+
+            <div id="feedback" class="feedback-area"></div>
+        </div>
+
+        <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 text-slate-600 text-sm">
+            <strong class="text-blue-700">📌 解題小提示：</strong><br>
+            • 遇到「平分」、「裁剪不剩餘」、「分裝」，求最大的可能性，通常是找 <strong>最大公因數</strong>。<br>
+            • 右邊有計算紙可以讓你用短除法做計算喔！
+        </div>
+    </div>
+
+    <!-- 右側：電子計算紙 -->
+    <div class="canvas-panel">
+        <div class="canvas-header">
+            <div class="font-bold text-slate-700 flex items-center gap-2">
+                <span>✍️</span> 計算紙區
+            </div>
+            <div class="flex gap-2">
+                <button class="px-3 py-1 bg-white border border-slate-300 rounded text-sm hover:bg-slate-50 font-bold" onclick="setPenColor('#000000')">黑筆</button>
+                <button class="px-3 py-1 bg-white border border-slate-300 rounded text-sm hover:bg-slate-50 font-bold text-blue-600" onclick="setPenColor('#2563eb')">藍筆</button>
+                <button class="px-3 py-1 bg-red-100 text-red-600 border border-red-200 rounded text-sm hover:bg-red-200 font-bold ml-2" onclick="clearCanvas()">🗑️ 清除</button>
+            </div>
+        </div>
+        <div class="canvas-container" id="canvasContainer">
+            <canvas id="scratchpad"></canvas>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- 數學輔助工具 ---
+    const MathHelper = {
+        gcd: function(a, b) { return b === 0 ? a : this.gcd(b, a % b); },
+        gcd3: function(a, b, c) { return this.gcd(this.gcd(a, b), c); },
+        lcm: function(a, b) { return (a * b) / this.gcd(a, b); },
+        randInt: function(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+    };
+
+    // --- 題庫生成器 ---
+    let currentAnswers = [];
+
+    const QuestionTemplates = [
+        {
+            // 題型 1：平分給最多人 (三數求 GCD)
+            generate: () => {
+                // 隨機產生公因數 (人數) 5~15
+                const g = MathHelper.randInt(5, 15);
+                // 隨機產生倍數
+                const m1 = MathHelper.randInt(3, 10);
+                const m2 = MathHelper.randInt(4, 12);
+                const m3 = MathHelper.randInt(5, 15);
+                
+                const a = g * m1;
+                const b = g * m2;
+                const c = g * m3;
+                
+                // 確保真正算出來的最大公因數真的是 g (互質檢查)
+                const realGcd = MathHelper.gcd3(a, b, c);
+
+                const html = `一群同學去郊遊，共買了 ${a} 片口香糖、${b} 條巧克力、${c} 顆果凍，每一種零食都剛好能平分給所有同學，則最多有 <input type="text" class="answer-input" data-idx="0"> 位同學去郊遊。`;
+                return { html: html, answers: [realGcd] };
+            }
+        },
+        {
+            // 題型 2：裁剪正方形 (兩數求 GCD 後算數量)
+            generate: () => {
+                // 正方形邊長 5~20
+                const g = MathHelper.randInt(5, 20);
+                const m1 = MathHelper.randInt(4, 12);
+                const m2 = MathHelper.randInt(3, 10);
+                
+                const L = g * m1;
+                const W = g * m2;
+                const realGcd = MathHelper.gcd(L, W);
+                
+                // 實際可剪的張數 = (長/GCD) * (寬/GCD)
+                const count = (L / realGcd) * (W / realGcd);
+
+                const html = `李先生買了一張壁報紙，長為 ${L} 公分，寬為 ${W} 公分，想要裁剪成很多大小相同的正方形，且不可剩餘，又正方形是愈大愈好，則可以剪成 <input type="text" class="answer-input" data-idx="0"> 張正方形。`;
+                return { html: html, answers: [count] };
+            }
+        },
+        {
+            // 題型 3：分裝禮盒 (求 GCD 與商數總和)
+            generate: () => {
+                // 盒數 4~15
+                const g = MathHelper.randInt(4, 15);
+                const m1 = MathHelper.randInt(2, 8);
+                const m2 = MathHelper.randInt(3, 9);
+                const m3 = MathHelper.randInt(4, 10);
+                
+                const a = g * m1;
+                const b = g * m2;
+                const c = g * m3;
+                
+                const realGcd = MathHelper.gcd3(a, b, c);
+                // 每盒總包數
+                const totalPerBox = (a/realGcd) + (b/realGcd) + (c/realGcd);
+
+                const html = `將 ${a} 包巧克力餅乾、${b} 包葡萄餅乾、${c} 包草莓派餅乾分裝在幾個餅乾盒，使同一種餅乾在每一盒裡有一樣多包，且三種餅乾剛好裝完沒有剩下。則最多可裝 <input type="text" class="answer-input" data-idx="0"> 盒，每一盒共有 <input type="text" class="answer-input" data-idx="1"> 包餅乾。`;
+                return { html: html, answers: [realGcd, totalPerBox] };
+            }
+        }
+    ];
+
+    // --- 載入與驗證邏輯 ---
+    function loadNextQuestion() {
+        // 隨機選一個題型
+        const typeIndex = MathHelper.randInt(0, QuestionTemplates.length - 1);
+        const qData = QuestionTemplates[typeIndex].generate();
+        
+        document.getElementById('questionText').innerHTML = qData.html;
+        currentAnswers = qData.answers;
+        
+        document.getElementById('feedback').innerHTML = '';
+        document.getElementById('checkBtn').style.display = 'inline-flex';
+        
+        // 聚焦第一個輸入框
+        const firstInput = document.querySelector('.answer-input');
+        if(firstInput) firstInput.focus();
+
+        // 綁定 Enter 鍵
+        document.querySelectorAll('.answer-input').forEach(input => {
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') checkAnswers();
+            });
+        });
+    }
+
+    function checkAnswers() {
+        const inputs = document.querySelectorAll('.answer-input');
+        let allCorrect = true;
+
+        inputs.forEach(input => {
+            // 清除之前的狀態
+            input.classList.remove('correct', 'wrong');
+            
+            const idx = parseInt(input.getAttribute('data-idx'));
+            const userVal = parseInt(input.value.trim());
+            const correctVal = currentAnswers[idx];
+
+            if (isNaN(userVal) || userVal !== correctVal) {
+                allCorrect = false;
+                // 強制重繪以觸發動畫
+                void input.offsetWidth; 
+                input.classList.add('wrong');
+            } else {
+                input.classList.add('correct');
+            }
+        });
+
+        const fb = document.getElementById('feedback');
+        if (allCorrect) {
+            fb.innerHTML = '<span class="text-green-600">🎉 太棒了！計算完全正確！</span>';
+            document.getElementById('checkBtn').style.display = 'none'; // 隱藏送出按鈕
+        } else {
+            fb.innerHTML = '<span class="text-red-500">❌ 有些地方算錯囉，請檢查一下右邊的計算紙！</span>';
+        }
+    }
+
+    // --- 互動電子計算紙 (Canvas) 邏輯 ---
+    const canvas = document.getElementById('scratchpad');
+    const ctx = canvas.getContext('2d');
+    const container = document.getElementById('canvasContainer');
+
+    let isDrawing = false;
+    let lastX = 0;
+    let lastY = 0;
+    let currentPenColor = '#000000';
+
+    // 調整 Canvas 解析度與顯示尺寸相符
+    function resizeCanvas() {
+        const rect = container.getBoundingClientRect();
+        // 必須同時設定內部繪圖座標和 CSS 寬高，避免變形
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+        // 重置筆刷設定 (resize 會清空 context)
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+        ctx.lineWidth = 3;
+    }
+
+    // 視窗變動時重新調整計算紙尺寸
+    window.addEventListener('resize', resizeCanvas);
+
+    // 取得正確的座標 (處理捲動和 Canvas 縮放)
+    function getPointerPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        // 區分滑鼠事件與觸控事件
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        
+        return {
+            x: clientX - rect.left,
+            y: clientY - rect.top
+        };
+    }
+
+    function startDrawing(e) {
+        isDrawing = true;
+        const pos = getPointerPos(e);
+        lastX = pos.x;
+        lastY = pos.y;
+    }
+
+    function draw(e) {
+        if (!isDrawing) return;
+        e.preventDefault(); // 防止手機端滑動畫布時觸發螢幕捲動
+
+        const pos = getPointerPos(e);
+        
+        ctx.strokeStyle = currentPenColor;
+        ctx.beginPath();
+        ctx.moveTo(lastX, lastY);
+        ctx.lineTo(pos.x, pos.y);
+        ctx.stroke();
+        
+        lastX = pos.x;
+        lastY = pos.y;
+    }
+
+    function stopDrawing() {
+        isDrawing = false;
+    }
+
+    // 綁定滑鼠事件
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('mouseout', stopDrawing);
+
+    // 綁定觸控事件 (平板支援)
+    canvas.addEventListener('touchstart', startDrawing, {passive: false});
+    canvas.addEventListener('touchmove', draw, {passive: false});
+    canvas.addEventListener('touchend', stopDrawing);
+
+    // 控制功能
+    function clearCanvas() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function setPenColor(color) {
+        currentPenColor = color;
+    }
+
+    // --- 啟動初始化 ---
+    window.onload = () => {
+        resizeCanvas();
+        loadNextQuestion();
+    };
+
+</script>
+</body>
+</html>
+<!-- ... existing code ... -->
