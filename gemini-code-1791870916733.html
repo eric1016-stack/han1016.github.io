@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>國中素養題素材擷取系統</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; color: #333; padding: 20px; line-height: 1.6; }
+    .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    h1 { color: #1a73e8; margin-top: 0; }
+    .control-panel { background: #eef2f8; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
+    button { background: #1a73e8; color: white; border: none; padding: 10px 20px; border-radius: 5px; font-size: 16px; cursor: pointer; transition: background 0.2s; }
+    button:hover { background: #1557b0; }
+    .card { border: 1px solid #ddd; padding: 20px; margin-bottom: 15px; border-radius: 8px; background: #fff; }
+    .card h3 { margin-top: 0; }
+    .card a { color: #1a73e8; text-decoration: none; }
+    .card a:hover { text-decoration: underline; }
+    .badge { background: #e6f4ea; color: #137333; padding: 4px 8px; border-radius: 4px; font-size: 14px; font-weight: bold; display: inline-block; margin-bottom: 10px; }
+    #loading { display: none; color: #666; font-style: italic; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>📰 國中素養題素材擷取系統</h1>
+  <p>鎖定公視新聞網，快速尋找包含<strong>數據、比例、趨勢</strong>的新聞，適合作為圖表題與閱讀理解題材。</p>
+  
+  <div class="control-panel">
+    <div>
+      <label for="datePicker"><strong>選擇日期：</strong></label>
+      <input type="date" id="datePicker">
+    </div>
+    <div>
+      <label>
+        <input type="checkbox" id="requireData" checked> 
+        只顯示含有「數據/統計」的新聞
+      </label>
+    </div>
+    <button onclick="fetchNews()">🔍 開始擷取</button>
+  </div>
+
+  <div id="loading">正在跨網域讀取新聞資料，請稍候...</div>
+  <div id="results"></div>
+</div>
+
+<script>
+  document.getElementById('datePicker').valueAsDate = new Date();
+
+  async function fetchNews() {
+    const resultsDiv = document.getElementById('results');
+    const loadingDiv = document.getElementById('loading');
+    resultsDiv.innerHTML = '';
+    loadingDiv.style.display = 'block';
+
+    const selectedDate = document.getElementById('datePicker').value;
+    const requireData = document.getElementById('requireData').checked;
+
+    if (!selectedDate) {
+      alert("請選擇日期！");
+      loadingDiv.style.display = 'none';
+      return;
+    }
+
+    try {
+      // 更換為更穩定的 Codetabs 代理伺服器
+      const rssUrl = 'https://news.pts.org.tw/xml/news.xml';
+      const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${rssUrl}`;
+      
+      const response = await fetch(proxyUrl);
+      if (!response.ok) throw new Error('代理伺服器無法連線');
+      
+      const xmlText = await response.text();
+      
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+      const items = xmlDoc.querySelectorAll("item");
+      
+      const targetDateObj = new Date(selectedDate);
+      let matchCount = 0;
+
+      items.forEach(item => {
+        const pubDateStr = item.querySelector("pubDate").textContent;
+        const pubDate = new Date(pubDateStr);
+        
+        if (pubDate.toDateString() === targetDateObj.toDateString()) {
+          const title = item.querySelector("title").textContent;
+          const link = item.querySelector("link").textContent;
+          const description = item.querySelector("description").textContent;
+          
+          const dataRegex = /\d+(\.\d+)?%|\d+萬|\d+億|增加|下降|減少|比例|倍/g;
+          const hasData = dataRegex.test(description);
+          
+          if (requireData && !hasData) return;
+          
+          matchCount++;
+          
+          const card = document.createElement('div');
+          card.className = 'card';
+          card.innerHTML = `
+            <h3><a href="${link}" target="_blank">${title}</a></h3>
+            ${hasData ? '<div class="badge">📊 包含數據/統計特徵</div>' : ''}
+            <p><strong>發布時間：</strong> ${pubDate.toLocaleString('zh-TW')}</p>
+            <p>${description}</p>
+          `;
+          resultsDiv.appendChild(card);
+        }
+      });
+
+      if (matchCount === 0) {
+        resultsDiv.innerHTML = '<p>😲 這個日期找不到符合條件的新聞，請嘗試其他日期（註：新聞 RSS 來源通常只保留最近 2-3 天的資料）。</p>';
+      }
+
+    } catch (error) {
+      resultsDiv.innerHTML = `<p style="color:red;">❌ 發生錯誤：${error.message}<br><br>💡 <b>解決建議：</b>如果你有安裝 AdBlock、uBlock 等擋廣告擴充功能，或是使用 Brave 瀏覽器，它們可能會封鎖代理伺服器的連線。請嘗試<b>暫時關閉擋廣告套件</b>，然後重新整理網頁再試一次。</p>`;
+    } finally {
+      loadingDiv.style.display = 'none';
+    }
+  }
+</script>
+
+</body>
+</html>
